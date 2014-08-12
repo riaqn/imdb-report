@@ -4,9 +4,9 @@
   <head>
     <meta charset="utf-8">
     
-    <title>IMDb Live</title>
+    <title>IMDb Report</title>
     
-    <meta name="description" content="A live statistics of IMDb ">
+    <meta name="description" content="A statistics of IMDb ">
     <meta name="author" content="Zesen qian">
     
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -34,14 +34,54 @@
     <!--[if lt IE 9]>
     <script src="lib/js/html5shiv.js"></script>
     <![endif]-->
+
+    <style>
+     .tick text {
+       font: 14px sans-serif;
+       margin: 0;
+       }
+    </style>
   </head>
   
   <body>
     
     <div class="reveal">
-      
       <!-- Any section element inside of this container is displayed as a slide -->
       <div class="slides">
+        <section id='section-cover'>
+          <h1>IMDb Report</h1>
+          <h3>by Zesen Qian</h3>
+        </section>
+        <section id='section-imdb'>
+          <h3>What is IMDb</h3>
+          <p>
+            互联网电影数据库（Internet Movie Database，IMDb）是一个关于电影演员、电影、电视节目、电视艺人、电子游戏和电影制作小组的在线数据库。
+          </p>
+          <p>
+            截至2014年8月1日，IMDb收录了共2,950,317部作品以及
+            6,029,621个人物的资料。
+          </p>
+        </section>
+        <section id='section-outline'>
+          <h3>Outline</h3>
+          <ul>
+            <li>抓取电影史上最有影响力的10,000部电影</li>
+            <li>抓取数据包括
+              <ul>
+                <li>标题，年份</li>
+                <li>类型，长度</li>
+                <li>导演，演员</li>
+                <li>评分，评分数</li>
+              </ul>
+            </li>
+          </ul>
+        </section>
+        <section id='section-density-year'>
+          <h3>Density - Year</h3>
+        </section>
+        <section id='section-quantile-year'>
+          <h3>Quantile - Year</h3>
+        </section>
 	<section id='section-rating-year'>
 	  <h3>Rating - Year</h3>
 	</section>
@@ -59,6 +99,15 @@
     
     <script>
      $.getJSON('movie.json', function(data) {
+       var colors = ["#7D74FE","#7DFF26","#F84F1B","#28D8D5","#FB95B6","#9D9931","#F12ABF","#27EA88","#549AD5","#FEA526","#7B8D8B","#BB755F","#432E16",
+                     "#D75CFB","#44E337","#51EBE3","#ED3D24","#4069AE","#E1CC72","#E33E88","#D8A3B3","#428B50","#66F3A3","#E28A2A","#B2594D","#609297","#E8F03F","#3D2241",
+                     "#954EB3","#6A771C","#58AE2E","#75C5E9","#BBEB85","#A7DAB9","#6578E6","#932C5F","#865A26","#CC78B9","#2E5A52","#8C9D79","#9F6270","#6D3377","#551927","#DE8D5A",
+                     "#E3DEA8","#C3C9DB","#3A5870","#CD3B4F","#E476E3","#DCAB94","#33386D","#4DA284","#817AA5","#8D8384","#624F49","#8E211F","#9E785B","#355C22","#D4ADDE",
+                     "#A98229","#E88B87","#28282D","#253719","#BD89E1","#EB33D8","#6D311F","#DF45AA","#E86723","#6CE5BC","#765175","#942C42","#986CEB","#8CC488","#8395E3",
+                     "#D96F98","#9E2F83","#CFCBB8","#4AB9B7","#E7AC2C","#E96D59","#929752","#5E54A9","#CCBA3F","#BD3CB8","#408A2C","#8AE32E","#5E5621","#ADD837","#BE3221","#8DA12E",
+                     "#3BC58B","#6EE259","#52D170","#D2A867","#5C9CCD","#DB6472","#B9E8E0","#CDE067","#9C5615","#536C4F","#A74725","#CBD88A","#DF3066","#E9D235","#EE404C","#7DB362",
+                     "#B1EDA3","#71D2E1","#A954DC","#91DF6E","#CB6429","#D64ADC"];
+       
        function getYear(d) {
          return d.year;
          }
@@ -81,26 +130,149 @@
        
        var x_year = d3.scale.linear()
                             .range([0, width])
-                            .domain(d3.extent(data, getYear));
+//                            .domain(d3.extent(data, getYear));
+                            .domain([1920, 2013])
+       
        var x_axis_year = d3.svg.axis()
                                .scale(x_year)
-                               .ticks(5);
+                               .tickSize(2)
+                               .tickFormat(d3.format("d"));
        
        var y_rating = d3.scale.linear()
                               .range([height, 0])
                               .domain(d3.extent(data, getRating));
        var y_axis_rating = d3.svg.axis()
                                .scale(y_rating)
-                               .orient('left');
+                               .orient('left')
+                               .tickSize(2);
        
        var r_ratingCount = d3.scale.log()
                                  .range([0.5, 5])
                                  .domain([d3.min(data, getRatingCount), d3.max(data, getRatingCount)]);
 
-       var x_duration = d3.scale.log()
+       var x_duration = d3.scale.linear()
                                 .range([0, width])
-                                .domain([d3.min(data, getDuration), d3.max(data, getDuration)]);
+//                                .domain([d3.min(data, getDuration), d3.max(data, getDuration)]);
+                                .domain([60, 200]);
+       var x_axis_duration = d3.svg.axis()
+                                   .scale(x_duration)
+                                   .tickSize(2)
 
+       layers = [];
+       $.each(data, function(i, d) {
+         if (d.year >= x_year.domain()[0] && d.year <= x_year.domain()[1])
+         $.each(d.genre, function(j, g) {
+           var flag = false;
+           for (k = 0; k < layers.length; ++k)
+             if (g === layers[k].name) {
+             flag = true;
+             break;
+             }
+           if (!flag) {
+             layer = {name:g, values:[]};
+             for (k = x_year.domain()[0]; k <= x_year.domain()[1]; ++k)
+               layer.values.push({x:k, y:0, y0:0});
+             k = layers.push(layer) - 1;
+           }
+           layers[k].values[d.year - x_year.domain()[0]].y += 1 / d.genre.length;
+         });
+       });
+
+       var stack_density_year = 
+       d3.layout.stack().offset('zero').values(function(d) {return d.values;})(layers);
+       var y_density = d3.scale.linear()
+                              .range([height, 0])
+                              .domain([0, d3.max(layers[layers.length - 1].values, function(d) {return d.y0 + d.y})]);
+       var y_axis_density = d3.svg.axis()
+                                  .scale(y_density)
+                                  .orient('left')
+                                  .tickSize(2);
+       var y_quantile = d3.scale.linear()
+                                .range([height, 0])
+                                .domain([0, 1]);
+       var y_axis_quantile = d3.svg.axis()
+                                   .scale(y_quantile)
+                                   .orient('left')
+                                   .tickSize(2);
+
+       //----------density-year----------------
+
+       var svg = d3.select('#section-density-year')
+                   .append('svg')
+                   .attr('width', width + margin.left + margin.right)
+                   .attr('height', height + margin.top +
+       margin.bottom);
+
+       svg.append('g')
+          .attr('transform', 'translate(' + margin.left + ',' + (margin.top + height) + ')')
+          .call(x_axis_year);
+
+       svg.append('g')
+          .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
+          .call(y_axis_density);
+
+
+       var area = d3.svg.area()
+                        .x(function(d) {return x_year(d.x);})
+                        .y0(function(d) {return y_density(d.y0)})
+                        .y1(function(d) {return y_density(d.y0 + d.y)})
+                        .interpolate('basis');
+
+       var path = svg.append('g')
+                       .attr('transform', 'translate(' + margin.left +
+                       ',' + margin.top + ')')
+                       .selectAll('path')
+                       .data(stack_density_year);
+
+       path.enter()
+           .append('path')
+           .attr('d', function(d) {return area(d.values);})
+           .style('fill', function(d, i) { return colors[i];})
+           .style('stroke', function(d, i) {return colors[i];})
+           .append('title').text(function(d) {return d.name;});
+       
+       //----------density-year-end-----------
+
+       //----------quantile-year----------------
+       var stack_quantile_year = 
+       d3.layout.stack().offset('expand').values(function(d) {return d.values;})(layers);
+
+       var svg = d3.select('#section-quantile-year')
+                   .append('svg')
+                   .attr('width', width + margin.left + margin.right)
+                   .attr('height', height + margin.top +
+       margin.bottom);
+
+       svg.append('g')
+          .attr('transform', 'translate(' + margin.left + ',' + (margin.top + height) + ')')
+          .call(x_axis_year);
+
+       svg.append('g')
+          .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
+          .call(y_axis_quantile);
+       
+
+       var area = d3.svg.area()
+                        .x(function(d) {return x_year(d.x);})
+                        .y0(function(d) {return y_quantile(d.y0)})
+                        .y1(function(d) {return y_quantile(d.y0 + d.y)})
+                        .interpolate('basis');
+
+       var path = svg.append('g')
+                       .attr('transform', 'translate(' + margin.left +
+                       ',' + margin.top + ')')
+                       .selectAll('path')
+                       .data(stack_density_year);
+
+       path.enter()
+           .append('path')
+           .attr('d', function(d) {return area(d.values);})
+           .style('fill', function(d, i) { return colors[i];})
+           .style('stroke', function(d, i) {return colors[i];})
+           .append('title').text(function(d) {return d.name;});
+       
+       //----------quantile-year-end-----------
+       //----------rating-year---------------
        var svg = d3.select('#section-rating-year')
                 .append('svg')
                 .attr('width', width + margin.left + margin.right)
@@ -120,23 +292,42 @@
                        .data(data, getId);
        circle.enter()
              .append('circle')
+             .filter(getYear)
              .attr('cx', function(d) {return x_year(getYear(d))})
              .attr('cy', function(d) {return y_rating(getRating(d))})
              .attr('r', function(d) {return r_ratingCount(getRatingCount(d))})
              .attr('fill-opacity', '0.5');
+       //-----------rating-year-end--------------
 
+       //-----------rating-duration--------------
        var svg = d3.select('#section-rating-duration')
-                   .append('svg')
-                   .attr('width', width)
-                   .attr('height', height)
-                   .selectAll('circle')
-                   .data(data, getId);
-       svg.enter()
-          .append('circle')
-          .attr('cx', function(d) {return x_duration(getDuration(d))})
-          .attr('cy', function(d) {return y_rating(getRating(d))})
-          .attr('r', function(d) {return r_ratingCount(getRatingCount(d))})
-          .attr('fill-opacity', '0.5');
+                .append('svg')
+                .attr('width', width + margin.left + margin.right)
+                .attr('height', height + margin.top + margin.bottom);
+       
+       svg.append('g')
+          .attr('transform', 'translate(' + margin.left + ',' + (margin.top + height) + ')')
+          .call(x_axis_duration);
+
+       svg.append('g')
+          .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
+          .call(y_axis_rating);
+       
+       var circle = svg.append('g')
+                       .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
+                       .selectAll('circle')
+                       .data(data, getId);
+       circle.enter()
+             .append('circle')
+             .filter(function(d) {return x_duration(getDuration(d)) > 0})
+             .attr('cx', function(d) {return x_duration(getDuration(d))})
+             .attr('cy', function(d) {return y_rating(getRating(d))})
+             .attr('r', function(d) {return r_ratingCount(getRatingCount(d))})
+             .attr('fill-opacity', '0.5');
+       //------------rating-duration-end-------------
+
+       
+       
 
        Reveal.initialize({
          controls: true,
@@ -161,7 +352,7 @@
 	   { src: 'plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }
          ]
        });
-     });
+       });
     </script>
     
   </body>

@@ -1,5 +1,7 @@
 #!/bin/env python3
 import sqlite3
+import leveldb
+cache = leveldb.LevelDB('./url.db');
 
 db = sqlite3.connect('im.db', isolation_level=None);
 c = db.cursor();
@@ -18,22 +20,40 @@ c.execute(
     );
     ''');
 
-headers={'User-Agent' : 'Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0'};
-timeout = 10
 
 def IMDb_movie(url):
-    from urllib.request import urlopen, Request
+    def urlget(url):
+        burl = url.encode('ascii');
+        try:
+            data = bytes(cache.Get(burl));
+        except KeyError:
+            from urllib.request import urlopen, Request
+            from urllib.error import URLError
+            import socket
+            headers={'User-Agent' : 'Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0'};
+            timeout = 10
+            req = Request(url, headers=headers);
+            while True:
+                try:
+                    data = urlopen(req, timeout=timeout).read();
+                    break;
+                except socket.timeout:
+                    pass
+                except URLError:
+                    pass
+                except KeyboardInterrupt:
+                    break;
+                except:
+                    pass
+            cache.Put(burl, data);
+        finally:
+            return data;
+            
     while True:
         print(url);
-        req = Request(url, headers=headers);
         from bs4 import BeautifulSoup
-        while True:
-            try:
-                res = urlopen(req, timeout = timeout);
-                soup = BeautifulSoup(res);
-                break;
-            except:
-                pass
+        data = urlget(url);
+        soup = BeautifulSoup(data);
                 
         from urllib.parse import urljoin        
         for item in soup.select('tr[class]'):
@@ -42,15 +62,8 @@ def IMDb_movie(url):
             from re import match
             movie['id'] = match(r'^/title/(tt\d+)', iurl).group(1);
             movie['url'] = urljoin(url, iurl);
-            req0 = Request(movie['url'], headers = headers);
-            while True:
-                try:
-                    res0 = urlopen(req0, timeout = timeout);
-                    soup0 = BeautifulSoup(res0);
-                    break;
-                except:
-                    pass
-                    
+            data = urlget(movie['url']);
+            soup0 = BeautifulSoup(data);
             detail = soup0.select('div#maindetails_center_top')[0];
             overview = detail.select('div.article.title-overview')[0];
             overview_top = overview.select('td#overview-top')[0];
@@ -85,7 +98,7 @@ def IMDb_movie(url):
 
         url = urljoin(url, soup.select('span.pagination > a')[-1]['href']);
 
-for movie in IMDb_movie('http://www.imdb.com/search/title?at=0&sort=num_votes'):
+for movie in IMDb_movie('http://www.imdb.com/search/title?at=0&sort=num_votes,desc&start=7101'):
     print(movie);
     c.execute('''
     replace into movie
