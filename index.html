@@ -15,7 +15,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     
     <link rel="stylesheet" href="css/reveal.min.css">
-    <link rel="stylesheet" href="css/theme/default.css" id="theme">
+    <link rel="stylesheet" href="css/theme/simple.css" id="theme">
     
     <!-- For syntax highlighting -->
     <link rel="stylesheet" href="lib/css/zenburn.css">
@@ -41,6 +41,7 @@
        margin: 0;
        }
     </style>
+    
   </head>
   
   <body>
@@ -76,16 +77,13 @@
             </li>
           </ul>
         </section>
-        <section id='section-density-year'>
-          <h3>Density - Year</h3>
+        <section id="section-genre-year">
+          <h3>Genre - Year</h3>
         </section>
-        <section id='section-quantile-year'>
-          <h3>Quantile - Year</h3>
-        </section>
-	<section id='section-rating-year'>
+	<section id="section-rating-year" data-state="rating-year">
 	  <h3>Rating - Year</h3>
 	</section>
-        <section id='section-rating-duration'>
+        <section id="section-rating-duration">
           <h3>Rating - Duration</h3>
         </section>
       </div>
@@ -158,13 +156,13 @@
                                    .scale(x_duration)
                                    .tickSize(2)
 
-       layers = [];
+       genre_layers = [];
        $.each(data, function(i, d) {
          if (d.year >= x_year.domain()[0] && d.year <= x_year.domain()[1])
          $.each(d.genre, function(j, g) {
            var flag = false;
-           for (k = 0; k < layers.length; ++k)
-             if (g === layers[k].name) {
+           for (k = 0; k < genre_layers.length; ++k)
+             if (g === genre_layers[k].name) {
              flag = true;
              break;
              }
@@ -172,19 +170,19 @@
              layer = {name:g, values:[]};
              for (k = x_year.domain()[0]; k <= x_year.domain()[1]; ++k)
                layer.values.push({x:k, y:0, y0:0});
-             k = layers.push(layer) - 1;
+             k = genre_layers.push(layer) - 1;
            }
-           layers[k].values[d.year - x_year.domain()[0]].y += 1 / d.genre.length;
+           genre_layers[k].values[d.year - x_year.domain()[0]].y += 1 / d.genre.length;
          });
        });
 
-       var stack_density_year = 
-       d3.layout.stack().offset('zero').values(function(d) {return d.values;})(layers);
-       var y_density = d3.scale.linear()
+       var stack_genre_density_year = 
+       d3.layout.stack().offset('zero').values(function(d) {return d.values;})(genre_layers);
+       var y_year_density = d3.scale.linear()
                               .range([height, 0])
-                              .domain([0, d3.max(layers[layers.length - 1].values, function(d) {return d.y0 + d.y})]);
-       var y_axis_density = d3.svg.axis()
-                                  .scale(y_density)
+                              .domain([0, d3.max(genre_layers[genre_layers.length - 1].values, function(d) {return d.y0 + d.y})]);
+       var y_axis_year_density = d3.svg.axis()
+                                  .scale(y_year_density)
                                   .orient('left')
                                   .tickSize(2);
        var y_quantile = d3.scale.linear()
@@ -195,13 +193,16 @@
                                    .orient('left')
                                    .tickSize(2);
 
-       //----------density-year----------------
+       //----------genre-year----------------
 
-       var svg = d3.select('#section-density-year')
+       var svg = d3.select('#section-genre-year')
                    .append('svg')
-                   .attr('width', width + margin.left + margin.right)
-                   .attr('height', height + margin.top +
-       margin.bottom);
+                .attr('width', width + margin.left +
+                      margin.right)
+                .attr('height', height + margin.top +
+                      margin.bottom)
+                .append('g')
+                .attr('transform', 'scale(0.5, 0.6)');
 
        svg.append('g')
           .attr('transform', 'translate(' + margin.left + ',' + (margin.top + height) + ')')
@@ -209,20 +210,20 @@
 
        svg.append('g')
           .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
-          .call(y_axis_density);
+          .call(y_axis_year_density);
 
 
        var area = d3.svg.area()
                         .x(function(d) {return x_year(d.x);})
-                        .y0(function(d) {return y_density(d.y0)})
-                        .y1(function(d) {return y_density(d.y0 + d.y)})
+                        .y0(function(d) {return y_year_density(d.y0)})
+                        .y1(function(d) {return y_year_density(d.y0 + d.y)})
                         .interpolate('basis');
 
        var path = svg.append('g')
                        .attr('transform', 'translate(' + margin.left +
                        ',' + margin.top + ')')
                        .selectAll('path')
-                       .data(stack_density_year);
+                       .data(stack_genre_density_year);
 
        path.enter()
            .append('path')
@@ -231,17 +232,14 @@
            .style('stroke', function(d, i) {return colors[i];})
            .append('title').text(function(d) {return d.name;});
        
-       //----------density-year-end-----------
+       var stack_genre_quantile_year = 
+       d3.layout.stack().offset('expand').values(function(d) {return d.values;})(genre_layers);
 
-       //----------quantile-year----------------
-       var stack_quantile_year = 
-       d3.layout.stack().offset('expand').values(function(d) {return d.values;})(layers);
+       var svg = d3.select('#section-genre-year > svg')
+                   .append('g')
+                   .attr('transform', 'scale(0.5, 0.6) translate(' + (width
+                   + margin.left + margin.right) + ', 0)');
 
-       var svg = d3.select('#section-quantile-year')
-                   .append('svg')
-                   .attr('width', width + margin.left + margin.right)
-                   .attr('height', height + margin.top +
-       margin.bottom);
 
        svg.append('g')
           .attr('transform', 'translate(' + margin.left + ',' + (margin.top + height) + ')')
@@ -262,7 +260,7 @@
                        .attr('transform', 'translate(' + margin.left +
                        ',' + margin.top + ')')
                        .selectAll('path')
-                       .data(stack_density_year);
+                       .data(stack_genre_density_year);
 
        path.enter()
            .append('path')
@@ -271,7 +269,7 @@
            .style('stroke', function(d, i) {return colors[i];})
            .append('title').text(function(d) {return d.name;});
        
-       //----------quantile-year-end-----------
+       //----------genre-year-end-----------
        //----------rating-year---------------
        var svg = d3.select('#section-rating-year')
                 .append('svg')
