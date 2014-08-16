@@ -66,13 +66,13 @@
         <section id='section-outline'>
           <h3>Outline</h3>
           <ul>
-            <li>抓取电影史上最有影响力的10,000部电影</li>
-            <li>抓取数据包括
+            <li class="fragment">抓取电影史上最有影响力的10,000部电影</li>
+            <li class="fragment">抓取数据包括
               <ul>
-                <li>标题，年份</li>
-                <li>类型，长度</li>
-                <li>导演，演员</li>
-                <li>评分，评分数</li>
+                <li class="fragment">标题，年份</li>
+                <li class="fragment">类型，长度</li>
+                <li class="fragment">导演，演员</li>
+                <li class="fragment">评分，评分数</li>
               </ul>
             </li>
           </ul>
@@ -297,9 +297,17 @@
          density_quantile(get('year'), get('country'), x_axis_year, '#section-country-year');
        }, false);
 
-                                             
-       Reveal.addEventListener('rating-year', function() {
-         var svg = d3.select('#section-rating-year')
+
+       function plot(x, y, r, x_axis, y_axis, r_scale, section) {
+         var x_scale = x_axis.scale(),
+         x_domain = x_scale.domain(),
+         x_min = x_domain[0],
+         x_max = x_domain[x_domain.length - 1],
+         y_scale = y_axis.scale(),
+         y_domain = y_scale.domain(),
+         y_min = y_domain[0],
+         y_max = y_domain[y_domain.length - 1];
+         var svg = d3.select(section)
                      .append('svg')
                      .attr('width', width + margin.left +
                            margin.right)
@@ -309,52 +317,33 @@
          svg.append('g')
             .attr('transform', 'translate(' + margin.left + ','
                   + (margin.top + height) + ')')
-            .call(x_axis_year);
+            .call(x_axis);
          
          svg.append('g')
             .attr('transform', 'translate(' + margin.left + ','
                   + margin.top + ')')
-            .call(y_axis_rating);
+            .call(y_axis);
          
          var circle = svg.append('g')
                          .attr('transform', 'translate(' +
                                margin.left + ',' + margin.top + ')')
                          .selectAll('circle')
-                         .data(data, get('id'));
+                         .data(data);
          circle.enter()
                .append('circle')
-               .filter(get('year'))
-               .attr('cx', function(d) {return x_year(get('year')(d))})
-               .attr('cy', function(d) {return y_rating(get('rating')(d))})
-               .attr('r', function(d) {return r_ratingCount(get('ratingcount')(d))})
+               .filter(function(d) {return (x(d) >= x_min && x(d) <= x_max && y(d) >= y_min && y(d) <= y_max);})
+               .attr('cx', function(d) {return x_scale(x(d))})
+               .attr('cy', function(d) {return y_scale(y(d))})
+               .attr('r', function(d) {return r_scale(r(d))})
                .attr('fill-opacity', '0.5');
+       }
+
+       Reveal.addEventListener('rating-year', function() {
+         plot(get('year'), get('rating'), get('ratingcount'), x_axis_year, y_axis_rating, r_ratingCount, '#section-rating-year');
        }, false);
 
        Reveal.addEventListener('rating-duration', function() {
-         var svg = d3.select('#section-rating-duration')
-                     .append('svg')
-                     .attr('width', width + margin.left + margin.right)
-                     .attr('height', height + margin.top + margin.bottom);
-         
-         svg.append('g')
-            .attr('transform', 'translate(' + margin.left + ',' + (margin.top + height) + ')')
-            .call(x_axis_duration);
-         
-         svg.append('g')
-            .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
-            .call(y_axis_rating);
-         
-       var circle = svg.append('g')
-                       .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
-                       .selectAll('circle')
-                       .data(data, get('id'));
-         circle.enter()
-               .append('circle')
-               .filter(function(d) {return x_duration(get('duration')(d)) > 0})
-               .attr('cx', function(d) {return x_duration(get('duration')(d))})
-               .attr('cy', function(d) {return y_rating(get('rating')(d))})
-               .attr('r', function(d) {return r_ratingCount(get('ratingcount')(d))})
-               .attr('fill-opacity', '0.5');
+         plot(get('duration'), get('rating'), get('ratingcount'), x_axis_duration, y_axis_rating, r_ratingCount, '#section-rating-duration');
        }, false);
        
        Reveal.initialize({
