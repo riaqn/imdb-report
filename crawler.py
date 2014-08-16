@@ -94,14 +94,24 @@ def IMDb_movie(url):
                 movie['ratingcount'] = int(overview_top.select('div.star-box.giga-star > div.star-box-details > a > span')[0].string.replace(',', ''));
             except IndexError:
                 movie['ratingcount'] = None;
+
+            detail = soup0.select('#maindetails_center_bottom')[0];
+            movie['country'] = '';
+            for block in detail.select('.txt-block > h4.inline'):
+                if block.string == 'Country:':
+                    movie['country'] = '|'.join(map(lambda foo : foo.string, block.parent.select('a[itemprop="url"]')));
             yield movie;
 
         url = urljoin(url, soup.select('span.pagination > a')[-1]['href']);
 
-for movie in IMDb_movie('http://www.imdb.com/search/title?at=0&sort=num_votes,desc&start=7101'):
+count = 10000;
+for movie in IMDb_movie('http://www.imdb.com/search/title?at=0&sort=num_votes,desc'):
     print(movie);
     c.execute('''
     replace into movie
-    values (:id, :url, :title, :year, :rating, :ratingcount, :genre, :duration, :contrating);
+    values (:id, :url, :title, :year, :rating, :ratingcount, :genre, :duration, :contrating, :country);
     ''', movie
     );
+    count -= 1;
+    if count < 0:
+        break;

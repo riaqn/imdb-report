@@ -8,6 +8,10 @@ import json
 for row in cur.fetchall():
     movie = dict(row);
     movie['genre'] = movie['genre'].split('|');
+    if movie['country'] is None:
+        movie['country'] = ''
+    else:
+        movie['country'] = movie['country'].split('|');
     movies.append(movie);
 
 json.dump(movies, open('movie.json', 'w'));

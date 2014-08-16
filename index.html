@@ -32,7 +32,7 @@
     </script>
     
     <!--[if lt IE 9]>
-    <script src="lib/js/html5shiv.js"></script>
+    <Script src="lib/js/html5shiv.js"></script>
     <![endif]-->
 
     <style>
@@ -77,17 +77,26 @@
             </li>
           </ul>
         </section>
-        <section id="section-genre-year">
-          <h3>Genre - Year</h3>
+        <section>
+          <section id="section-genre-year" data-state="genre-year">
+            <h3>Genre - Year</h3>
+          </section>
+          <section id="section-contrating-year" data-state="contrating-year">
+            <h3>Content Rating - Year</h3>
+          </section>
+          <section id="section-country-year" data-state="country-year">
+            <h3>Country - Year</h3>
+          </section>
         </section>
-	<section id="section-rating-year" data-state="rating-year">
-	  <h3>Rating - Year</h3>
-	</section>
-        <section id="section-rating-duration">
-          <h3>Rating - Duration</h3>
+        <section>
+	  <section id="section-rating-year" data-state="rating-year">
+	    <h3>Rating - Year</h3>
+	  </section>
+          <section id="section-rating-duration" data-state="rating-duration">
+            <h3>Rating - Duration</h3>
+          </section>
         </section>
       </div>
-      
     </div>
     
     <script src="lib/js/head.min.js"></script>
@@ -106,227 +115,248 @@
                      "#3BC58B","#6EE259","#52D170","#D2A867","#5C9CCD","#DB6472","#B9E8E0","#CDE067","#9C5615","#536C4F","#A74725","#CBD88A","#DF3066","#E9D235","#EE404C","#7DB362",
                      "#B1EDA3","#71D2E1","#A954DC","#91DF6E","#CB6429","#D64ADC"];
        
-       function getYear(d) {
-         return d.year;
-         }
-       function getRating(d) {
-         return d.rating;
-         }
-       function getId(d) {
-         return d.id;
-         }
-       function getRatingCount(d) {
-         return d.ratingcount;
-         }
-       function getDuration(d) {
-         return d.duration;
-         }
-
+       function get(key) {
+         return function(d) {return d[key];};
+       }
+       
        var margin = {top: 40, right: 40, bottom: 40, left: 40};
        var width = 800 - margin.left - margin.right,
        height = 600 - margin.top - margin.bottom;
        
        var x_year = d3.scale.linear()
                             .range([0, width])
-//                            .domain(d3.extent(data, getYear));
-                            .domain([1920, 2013])
+                            .domain([1920, 2013]);
        
        var x_axis_year = d3.svg.axis()
                                .scale(x_year)
                                .tickSize(2)
                                .tickFormat(d3.format("d"));
+
+       var x_year_recent = d3.scale.linear()
+                            .range([0, width])
+                            .domain([1990, 2013]);
+       
+       var x_axis_year_recent = d3.svg.axis()
+                               .scale(x_year_recent)
+                               .tickSize(2)
+                               .tickFormat(d3.format("d"));
+
        
        var y_rating = d3.scale.linear()
                               .range([height, 0])
-                              .domain(d3.extent(data, getRating));
+                              .domain(d3.extent(data, get('rating')));
        var y_axis_rating = d3.svg.axis()
                                .scale(y_rating)
                                .orient('left')
                                .tickSize(2);
        
        var r_ratingCount = d3.scale.log()
-                                 .range([0.5, 5])
-                                 .domain([d3.min(data, getRatingCount), d3.max(data, getRatingCount)]);
+                                   .range([0.5, 5])
+                                   .domain(d3.extent(data, get('ratingcount')));
 
        var x_duration = d3.scale.linear()
                                 .range([0, width])
-//                                .domain([d3.min(data, getDuration), d3.max(data, getDuration)]);
                                 .domain([60, 200]);
        var x_axis_duration = d3.svg.axis()
                                    .scale(x_duration)
                                    .tickSize(2)
 
-       genre_layers = [];
-       $.each(data, function(i, d) {
-         if (d.year >= x_year.domain()[0] && d.year <= x_year.domain()[1])
-         $.each(d.genre, function(j, g) {
-           var flag = false;
-           for (k = 0; k < genre_layers.length; ++k)
-             if (g === genre_layers[k].name) {
-             flag = true;
-             break;
+       function density_quantile(x, y, x_axis, section) {
+         var x_scale = x_axis.scale();
+         var domain = x_scale.domain();
+         var minx = domain[0];
+         var maxx = domain[domain.length - 1];
+         var layers = [];
+
+         $.each(data, function(i, d) {
+           if (x(d) >= minx && x(d) <= maxx)
+             $.each(y(d), function(j, g) {
+             var flag = false;
+             for (var k = 0; k < layers.length; ++k)
+               if (g === layers[k].name) {
+               flag = true;
+               break;
              }
-           if (!flag) {
-             layer = {name:g, values:[]};
-             for (k = x_year.domain()[0]; k <= x_year.domain()[1]; ++k)
-               layer.values.push({x:k, y:0, y0:0});
-             k = genre_layers.push(layer) - 1;
-           }
-           genre_layers[k].values[d.year - x_year.domain()[0]].y += 1 / d.genre.length;
+             if (!flag) {
+               layer = {name:g, values:[]};
+               for (k = minx; k <= maxx; ++k)
+                 layer.values.push({x:k, y:0, y0:0});
+               k = layers.push(layer) - 1;
+             }
+             layers[k].values[x(d) - minx].y += 1 / y(d).length;
+           });
          });
-       });
+         
+         var stack = 
+         d3.layout.stack().offset('zero').values(function(d) {return d.values;})(layers);
 
-       var stack_genre_density_year = 
-       d3.layout.stack().offset('zero').values(function(d) {return d.values;})(genre_layers);
-       var y_year_density = d3.scale.linear()
-                              .range([height, 0])
-                              .domain([0, d3.max(genre_layers[genre_layers.length - 1].values, function(d) {return d.y0 + d.y})]);
-       var y_axis_year_density = d3.svg.axis()
-                                  .scale(y_year_density)
-                                  .orient('left')
-                                  .tickSize(2);
-       var y_quantile = d3.scale.linear()
-                                .range([height, 0])
-                                .domain([0, 1]);
-       var y_axis_quantile = d3.svg.axis()
-                                   .scale(y_quantile)
-                                   .orient('left')
-                                   .tickSize(2);
+         var y_scale = d3.scale.linear()
+                               .domain([0, d3.max(stack[stack.length - 1].values, function(d) {return d.y0 + d.y;})])
+                               .range([height, 0]);
 
-       //----------genre-year----------------
+         var svg = d3.select(section)
+                     .append('svg')
+                     .attr('width', width + margin.left +
+                           margin.right)
+                     .attr('height', height + margin.top +
+                           margin.bottom)
+                     .append('g')
+                     .attr('transform', 'scale(0.5, 0.6)');
 
-       var svg = d3.select('#section-genre-year')
-                   .append('svg')
-                .attr('width', width + margin.left +
-                      margin.right)
-                .attr('height', height + margin.top +
-                      margin.bottom)
-                .append('g')
-                .attr('transform', 'scale(0.5, 0.6)');
+         svg.append('g')
+            .attr('transform', 'translate(' + margin.left + ',' + (margin.top + height) + ')')
+            .call(x_axis);
 
-       svg.append('g')
-          .attr('transform', 'translate(' + margin.left + ',' + (margin.top + height) + ')')
-          .call(x_axis_year);
-
-       svg.append('g')
-          .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
-          .call(y_axis_year_density);
-
-
-       var area = d3.svg.area()
-                        .x(function(d) {return x_year(d.x);})
-                        .y0(function(d) {return y_year_density(d.y0)})
-                        .y1(function(d) {return y_year_density(d.y0 + d.y)})
-                        .interpolate('basis');
-
-       var path = svg.append('g')
+         var y_axis = d3.svg.axis()
+                            .scale(y_scale)
+                            .tickSize(2)
+                            .orient('left')
+         
+         svg.append('g')
+            .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
+            .call(y_axis);
+         
+         
+         var area = d3.svg.area()
+                          .x(function(d) {return x_scale(d.x);})
+                          .y0(function(d) {return y_scale(d.y0)})
+                          .y1(function(d) {return y_scale(d.y0 + d.y)})
+                          .interpolate('basis');
+         
+         var path = svg.append('g')
                        .attr('transform', 'translate(' + margin.left +
-                       ',' + margin.top + ')')
+                             ',' + margin.top + ')')
                        .selectAll('path')
-                       .data(stack_genre_density_year);
-
-       path.enter()
-           .append('path')
-           .attr('d', function(d) {return area(d.values);})
-           .style('fill', function(d, i) { return colors[i];})
-           .style('stroke', function(d, i) {return colors[i];})
-           .append('title').text(function(d) {return d.name;});
+                       .data(stack);
+         
+         path.enter()
+             .append('path')
+             .attr('d', function(d) {return area(d.values);})
+             .style('fill', function(d, i) { return colors[i];})
+             .style('stroke', function(d, i) {return colors[i];})
+             .append('title').text(function(d) {return d.name;});
        
-       var stack_genre_quantile_year = 
-       d3.layout.stack().offset('expand').values(function(d) {return d.values;})(genre_layers);
+         var stack = 
+         d3.layout.stack().offset('expand').values(function(d) {return d.values;})(layers);
+         
+         var svg = d3.select(section + ' > svg')
+                     .append('g')
+                     .attr('transform', 'scale(0.5, 0.6) translate(' + (width
+                                                                        + margin.left + margin.right) + ', 0)');
+         
+         svg.append('g')
+            .attr('transform', 'translate(' + margin.left + ',' + (margin.top + height) + ')')
+            .call(x_axis);
 
-       var svg = d3.select('#section-genre-year > svg')
-                   .append('g')
-                   .attr('transform', 'scale(0.5, 0.6) translate(' + (width
-                   + margin.left + margin.right) + ', 0)');
-
-
-       svg.append('g')
-          .attr('transform', 'translate(' + margin.left + ',' + (margin.top + height) + ')')
-          .call(x_axis_year);
-
-       svg.append('g')
-          .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
-          .call(y_axis_quantile);
-       
-
-       var area = d3.svg.area()
-                        .x(function(d) {return x_year(d.x);})
-                        .y0(function(d) {return y_quantile(d.y0)})
-                        .y1(function(d) {return y_quantile(d.y0 + d.y)})
-                        .interpolate('basis');
-
-       var path = svg.append('g')
+         var y_quantile = d3.scale.linear()
+                                  .range([height, 0])
+                                  .domain([0, 1]);
+         var y_axis_quantile = d3.svg.axis()
+                                     .scale(y_quantile)
+                                     .orient('left')
+                                     .tickSize(2);
+         
+         svg.append('g')
+            .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
+            .call(y_axis_quantile);
+         
+         var area = d3.svg.area()
+                          .x(function(d) {return x_scale(d.x);})
+                          .y0(function(d) {return y_quantile(d.y0)})
+                          .y1(function(d) {return y_quantile(d.y0 + d.y)})
+                          .interpolate('basis');
+         
+         var path = svg.append('g')
                        .attr('transform', 'translate(' + margin.left +
-                       ',' + margin.top + ')')
+                             ',' + margin.top + ')')
                        .selectAll('path')
-                       .data(stack_genre_density_year);
+                       .data(stack);
+         
+         path.enter()
+             .append('path')
+             .attr('d', function(d) {return area(d.values);})
+             .style('fill', function(d, i) { return colors[i];})
+             .style('stroke', function(d, i) {return colors[i];})
+             .append('title').text(function(d) {return d.name;});
+       }
 
-       path.enter()
-           .append('path')
-           .attr('d', function(d) {return area(d.values);})
-           .style('fill', function(d, i) { return colors[i];})
-           .style('stroke', function(d, i) {return colors[i];})
-           .append('title').text(function(d) {return d.name;});
-       
-       //----------genre-year-end-----------
-       //----------rating-year---------------
-       var svg = d3.select('#section-rating-year')
-                .append('svg')
-                .attr('width', width + margin.left + margin.right)
-                .attr('height', height + margin.top + margin.bottom);
-       
-       svg.append('g')
-          .attr('transform', 'translate(' + margin.left + ',' + (margin.top + height) + ')')
-          .call(x_axis_year);
+       Reveal.addEventListener('slidechanged', function(event) {
+         console.log('#' + event.previousSlide.id + ' svg');
+         $('#' + event.previousSlide.id + ' svg').remove();
+       })
 
-       svg.append('g')
-          .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
-          .call(y_axis_rating);
-       
+       Reveal.addEventListener('genre-year', function() {
+         density_quantile(get('year'), get('genre'), x_axis_year, '#section-genre-year');
+       }, false);
+
+       Reveal.addEventListener('contrating-year', function() {
+         density_quantile(get('year'), function(d) {if (d.contrating !== null) return [d.contrating]; else return []}, x_axis_year_recent, '#section-contrating-year');
+       }, false);
+
+       Reveal.addEventListener('country-year', function() {
+         density_quantile(get('year'), get('country'), x_axis_year, '#section-country-year');
+       }, false);
+
+                                             
+       Reveal.addEventListener('rating-year', function() {
+         var svg = d3.select('#section-rating-year')
+                     .append('svg')
+                     .attr('width', width + margin.left +
+                           margin.right)
+                     .attr('height', height + margin.top +
+                           margin.bottom);
+         
+         svg.append('g')
+            .attr('transform', 'translate(' + margin.left + ','
+                  + (margin.top + height) + ')')
+            .call(x_axis_year);
+         
+         svg.append('g')
+            .attr('transform', 'translate(' + margin.left + ','
+                  + margin.top + ')')
+            .call(y_axis_rating);
+         
+         var circle = svg.append('g')
+                         .attr('transform', 'translate(' +
+                               margin.left + ',' + margin.top + ')')
+                         .selectAll('circle')
+                         .data(data, get('id'));
+         circle.enter()
+               .append('circle')
+               .filter(get('year'))
+               .attr('cx', function(d) {return x_year(get('year')(d))})
+               .attr('cy', function(d) {return y_rating(get('rating')(d))})
+               .attr('r', function(d) {return r_ratingCount(get('ratingcount')(d))})
+               .attr('fill-opacity', '0.5');
+       }, false);
+
+       Reveal.addEventListener('rating-duration', function() {
+         var svg = d3.select('#section-rating-duration')
+                     .append('svg')
+                     .attr('width', width + margin.left + margin.right)
+                     .attr('height', height + margin.top + margin.bottom);
+         
+         svg.append('g')
+            .attr('transform', 'translate(' + margin.left + ',' + (margin.top + height) + ')')
+            .call(x_axis_duration);
+         
+         svg.append('g')
+            .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
+            .call(y_axis_rating);
+         
        var circle = svg.append('g')
                        .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
                        .selectAll('circle')
-                       .data(data, getId);
-       circle.enter()
-             .append('circle')
-             .filter(getYear)
-             .attr('cx', function(d) {return x_year(getYear(d))})
-             .attr('cy', function(d) {return y_rating(getRating(d))})
-             .attr('r', function(d) {return r_ratingCount(getRatingCount(d))})
-             .attr('fill-opacity', '0.5');
-       //-----------rating-year-end--------------
-
-       //-----------rating-duration--------------
-       var svg = d3.select('#section-rating-duration')
-                .append('svg')
-                .attr('width', width + margin.left + margin.right)
-                .attr('height', height + margin.top + margin.bottom);
+                       .data(data, get('id'));
+         circle.enter()
+               .append('circle')
+               .filter(function(d) {return x_duration(get('duration')(d)) > 0})
+               .attr('cx', function(d) {return x_duration(get('duration')(d))})
+               .attr('cy', function(d) {return y_rating(get('rating')(d))})
+               .attr('r', function(d) {return r_ratingCount(get('ratingcount')(d))})
+               .attr('fill-opacity', '0.5');
+       }, false);
        
-       svg.append('g')
-          .attr('transform', 'translate(' + margin.left + ',' + (margin.top + height) + ')')
-          .call(x_axis_duration);
-
-       svg.append('g')
-          .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
-          .call(y_axis_rating);
-       
-       var circle = svg.append('g')
-                       .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
-                       .selectAll('circle')
-                       .data(data, getId);
-       circle.enter()
-             .append('circle')
-             .filter(function(d) {return x_duration(getDuration(d)) > 0})
-             .attr('cx', function(d) {return x_duration(getDuration(d))})
-             .attr('cy', function(d) {return y_rating(getRating(d))})
-             .attr('r', function(d) {return r_ratingCount(getRatingCount(d))})
-             .attr('fill-opacity', '0.5');
-       //------------rating-duration-end-------------
-
-       
-       
-
        Reveal.initialize({
          controls: true,
          progress: true,
@@ -334,7 +364,7 @@
          center: true,
          
          theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
-         transition: Reveal.getQueryHash().transition || 'default', // default/cube/page/concave/zoom/linear/fade/none
+         transition: Reveal.getQueryHash().transition || 'linear', // default/cube/page/concave/zoom/linear/fade/none
          
          // Parallax scrolling
          // parallaxBackgroundImage: 'https://s3.amazonaws.com/hakim-static/reveal-js/reveal-parallax-1.jpg',
@@ -350,7 +380,7 @@
 	   { src: 'plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }
          ]
        });
-       });
+     });
     </script>
     
   </body>
