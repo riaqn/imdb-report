@@ -40,6 +40,19 @@
        font: 14px sans-serif;
        margin: 0;
        }
+     ul.legend {
+       list-style: none;
+       text-align: center;
+       }
+     ul.legend li {
+       float: left;
+       padding: 4px;
+       margin: 4px;
+       white-space: nowrap;
+       font-size: 16px;
+       line-height: 24px;
+       display: inline-block;
+       }
     </style>
     
   </head>
@@ -95,6 +108,9 @@
           <section id="section-rating-duration" data-state="rating-duration">
             <h3>Rating - Duration</h3>
           </section>
+          <section id="section-rating-budget" data-state="rating-budget">
+            <h3>Rating - Budget</h3>
+          </section>
         </section>
       </div>
     </div>
@@ -141,6 +157,26 @@
                                .tickSize(2)
                                .tickFormat(d3.format("d"));
 
+       var x_budget = d3.scale.log()
+                              .range([0, width])
+                              .domain([100000, d3.max(data,
+                              get('budget'))]);
+       
+       var x_axis_budget = d3.svg.axis()
+                                 .scale(x_budget)
+                                 .tickSize(2)
+                                 .tickValues([1e5, 3e5, 1e6, 3e6, 1e7,
+                                 3e7, 1e8, 3e8])
+                                 .tickFormat(function(d) {
+         if (d >= 1e9)
+           return d / 1e9 + 'B';
+         else if (d >= 1e6)
+         return d / 1e6 + 'M';
+         else if (d >= 1e3)
+         return d / 1e3 + 'K';
+         else
+           return d + '';
+         });
        
        var y_rating = d3.scale.linear()
                               .range([height, 0])
@@ -187,102 +223,190 @@
            });
          });
          
-         var stack = 
-         d3.layout.stack().offset('zero').values(function(d) {return d.values;})(layers);
-
-         var y_scale = d3.scale.linear()
-                               .domain([0, d3.max(stack[stack.length - 1].values, function(d) {return d.y0 + d.y;})])
-                               .range([height, 0]);
+         d3.layout.stack()
+                  .offset('zero')
+                  .values(function(d) {return d.values;})
+                  .out(function(d, y0, y) {
+           d.density = {x:d.x,
+                        y0:y0,
+                        y:y};
+         })(layers);
 
          var svg = d3.select(section)
                      .append('svg')
                      .attr('width', width + margin.left +
                            margin.right)
-                     .attr('height', height + margin.top +
-                           margin.bottom)
+                     .attr('height', (height + margin.top +
+                           margin.bottom) * 0.6)
                      .append('g')
+                     .attr('class', 'density')
                      .attr('transform', 'scale(0.5, 0.6)');
 
          svg.append('g')
-            .attr('transform', 'translate(' + margin.left + ',' + (margin.top + height) + ')')
+            .attr('class', 'x_axis')
+            .attr('transform', 'translate(' + margin.left + ',' +
+            (margin.top + height) + ')')
             .call(x_axis);
 
-         var y_axis = d3.svg.axis()
-                            .scale(y_scale)
-                            .tickSize(2)
-                            .orient('left')
-         
          svg.append('g')
+            .attr('class', 'y_axis')
             .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
-            .call(y_axis);
          
-         
-         var area = d3.svg.area()
-                          .x(function(d) {return x_scale(d.x);})
-                          .y0(function(d) {return y_scale(d.y0)})
-                          .y1(function(d) {return y_scale(d.y0 + d.y)})
-                          .interpolate('basis');
          
          var path = svg.append('g')
+                       .attr('class', 'path')
                        .attr('transform', 'translate(' + margin.left +
                              ',' + margin.top + ')')
                        .selectAll('path')
-                       .data(stack);
+                       .data(layers);
          
          path.enter()
              .append('path')
-             .attr('d', function(d) {return area(d.values);})
              .style('fill', function(d, i) { return colors[i];})
              .style('stroke', function(d, i) {return colors[i];})
              .append('title').text(function(d) {return d.name;});
        
-         var stack = 
-         d3.layout.stack().offset('expand').values(function(d) {return d.values;})(layers);
+         d3.layout.stack()
+                  .offset('expand')
+                  .values(function(d) {return d.values;})
+                  .out(function(d, y0, y) {
+           d.quantile = {x:d.x,
+                         y0:y0,
+                         y:y};
+           })(layers);
          
          var svg = d3.select(section + ' > svg')
                      .append('g')
-                     .attr('transform', 'scale(0.5, 0.6) translate(' + (width
-                                                                        + margin.left + margin.right) + ', 0)');
+                     .attr('class', 'quantile')
+                     .attr('transform', 'scale(0.5, 0.6) translate(' +
+                     (width + margin.left + margin.right) + ', ' +
+                     (0) + ')');
          
          svg.append('g')
-            .attr('transform', 'translate(' + margin.left + ',' + (margin.top + height) + ')')
-            .call(x_axis);
+            .attr('class', 'x_axis')
+            .attr('transform', 'translate(' + margin.left + ',' +
+            (margin.top + height) + ')')
+            .call(x_axis)
 
-         var y_quantile = d3.scale.linear()
-                                  .range([height, 0])
-                                  .domain([0, 1]);
-         var y_axis_quantile = d3.svg.axis()
-                                     .scale(y_quantile)
-                                     .orient('left')
-                                     .tickSize(2);
-         
          svg.append('g')
+            .attr('class', 'y_axis')
             .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
-            .call(y_axis_quantile);
-         
-         var area = d3.svg.area()
-                          .x(function(d) {return x_scale(d.x);})
-                          .y0(function(d) {return y_quantile(d.y0)})
-                          .y1(function(d) {return y_quantile(d.y0 + d.y)})
-                          .interpolate('basis');
          
          var path = svg.append('g')
+                       .attr('class', 'path')
                        .attr('transform', 'translate(' + margin.left +
                              ',' + margin.top + ')')
                        .selectAll('path')
-                       .data(stack);
+                       .data(layers);
          
          path.enter()
              .append('path')
-             .attr('d', function(d) {return area(d.values);})
              .style('fill', function(d, i) { return colors[i];})
              .style('stroke', function(d, i) {return colors[i];})
              .append('title').text(function(d) {return d.name;});
+
+         function transitionIn(d, i, type) {
+           var stack0 = layers.map(function(dat, idx) {
+             return dat.values.map(function(dat0) {
+               v = dat0[type];
+               if (idx === i)
+                 return {
+                 x:v.x,
+                 y:v.y,
+                 y0:0
+                 }
+               else
+                 return {
+                 x:v.x,
+                 y:0,
+                 y0:0
+               };
+               });
+           });
+           
+           var y_scale = d3.scale.linear()
+                                 .domain([0, d3.max(stack0[i], function(d) {return d.y;})])
+                                 .range([height, 0]);
+           var area = d3.svg.area()
+                            .x(function(d) {return x_scale(d.x);})
+                            .y0(function(d) {return y_scale(d.y0)})
+                            .y1(function(d) {return y_scale(d.y0 + d.y)})
+                            .interpolate('basis');
+
+           var svg = d3.select(section + ' > svg > g.' + type);
+           var path = svg.select('g.path').selectAll('path');
+           path.data(stack0)
+                    .transition()
+                    .duration(1000)
+                    .attr('d', area);
+
+           var y_axis = d3.svg.axis()
+                          .scale(y_scale)
+                          .tickSize(2)
+                          .orient('left');
+           var axis = svg.select('g.y_axis');
+           axis.selectAll('*')
+               .remove();
+           axis.call(y_axis);
+         }
+
+         function transitionOut(type) {
+           var stack0 = layers.map(function(dat) {
+             return dat.values.map(function(dat0) {
+               return dat0[type];
+               });
+           });
+
+           var y_scale = d3.scale.linear()
+                                 .domain([0, d3.max(stack0[stack0.length - 1], function(d) {return d.y0 + d.y;})])
+                                 .range([height, 0]);
+           var area = d3.svg.area()
+                            .x(function(d) {return x_scale(d.x);})
+                            .y0(function(d) {return y_scale(d.y0)})
+                            .y1(function(d) {return y_scale(d.y0 + d.y)})
+                            .interpolate('basis');
+
+           var svg = d3.select(section + ' > svg > g.' + type);           
+           var path = svg.select('g.path').selectAll('path');
+           path.data(stack0)
+                    .transition()
+                    .duration(1000)
+                    .attr('d', area);
+
+           var y_axis = d3.svg.axis()
+                          .scale(y_scale)
+                          .tickSize(2)
+                          .orient('left');
+           var axis = svg.select('g.y_axis');
+           axis.selectAll('*')
+               .remove();
+           axis.call(y_axis);
+         }
+
+         function mouseoverLegend(d, i) {
+           transitionIn(d, i, 'density');
+           transitionIn(d, i, 'quantile');
+
+         }
+
+         function mouseoutLegend() {
+           transitionOut('density');
+           transitionOut('quantile');
+         }
+         
+         mouseoutLegend();
+
+         var legend = d3.select(section).append("ul").attr("class", "legend").selectAll('li');
+	 legend.data(layers).enter().append("li")
+               .text(function(d){return d.name;})
+               .style('background', function(d, i) {return colors[i];})
+	       .on("mouseover",mouseoverLegend).on("mouseout",mouseoutLegend).style("cursor","pointer");	
        }
 
        Reveal.addEventListener('slidechanged', function(event) {
          console.log('#' + event.previousSlide.id + ' svg');
          $('#' + event.previousSlide.id + ' svg').remove();
+         $('#' + event.previousSlide.id + ' ul.legend').remove();
        })
 
        Reveal.addEventListener('genre-year', function() {
@@ -344,6 +468,10 @@
 
        Reveal.addEventListener('rating-duration', function() {
          plot(get('duration'), get('rating'), get('ratingcount'), x_axis_duration, y_axis_rating, r_ratingCount, '#section-rating-duration');
+       }, false);
+
+       Reveal.addEventListener('rating-budget', function() {
+         plot(get('budget'), get('rating'), get('ratingcount'), x_axis_budget, y_axis_rating, r_ratingCount, '#section-rating-budget');
        }, false);
        
        Reveal.initialize({

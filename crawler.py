@@ -16,7 +16,9 @@ c.execute(
     ratingcount INTEGER,
     genre TEXT,
     duration REAL,
-    contrating TEXT
+    contrating TEXT,
+    country TEXT,
+    budget TEXT
     );
     ''');
 
@@ -97,9 +99,14 @@ def IMDb_movie(url):
 
             detail = soup0.select('#maindetails_center_bottom')[0];
             movie['country'] = '';
+            movie['budget'] = None;
+            
             for block in detail.select('.txt-block > h4.inline'):
                 if block.string == 'Country:':
                     movie['country'] = '|'.join(map(lambda foo : foo.string, block.parent.select('a[itemprop="url"]')));
+                elif block.string == 'Budget:':
+                    movie['budget'] = block.parent.contents[2];
+            
             yield movie;
 
         url = urljoin(url, soup.select('span.pagination > a')[-1]['href']);
@@ -109,7 +116,7 @@ for movie in IMDb_movie('http://www.imdb.com/search/title?at=0&sort=num_votes,de
     print(movie);
     c.execute('''
     replace into movie
-    values (:id, :url, :title, :year, :rating, :ratingcount, :genre, :duration, :contrating, :country);
+    values (:id, :url, :title, :year, :rating, :ratingcount, :genre, :duration, :contrating, :country, :budget);
     ''', movie
     );
     count -= 1;
