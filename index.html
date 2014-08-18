@@ -50,15 +50,19 @@
        margin: 4px;
        white-space: nowrap;
        font-size: 16px;
-       line-height: 24px;
+       line-height: 16px;
        display: inline-block;
        }
+     section .comment {
+       float:right;
+       color:#7f7f7f;
+     }
     </style>
     
   </head>
   
   <body>
-    
+    <h1 id="loadingText">Please wait while I'm loading...</h1>
     <div class="reveal">
       <!-- Any section element inside of this container is displayed as a slide -->
       <div class="slides">
@@ -69,12 +73,16 @@
         <section id='section-imdb'>
           <h3>What is IMDb</h3>
           <p>
-            互联网电影数据库（Internet Movie Database，IMDb）是一个关于电影演员、电影、电视节目、电视艺人、电子游戏和电影制作小组的在线数据库。
+            互联网电影数据库（Internet Movie Database，IMDb）<a href="#/section-reference">[1]</a>是一个关于电影演员、电影、电视节目、电视艺人、电子游戏和电影制作小组的在线数据库。
           </p>
           <p>
             截至2014年8月1日，IMDb收录了共2,950,317部作品以及
             6,029,621个人物的资料。
           </p>
+        </section>
+        <section id='section-rating'>
+          <h3>About Rating</h3>
+          <p>IMDb的评分以数据库注册用户评分为基础，再应用一个复杂的公式。入选规范必须是曾公开上映的非纪录片，片长至少45分钟，评分达两万五千人次以上，并且只有定期投票习惯的用户才会采用计票，至于有效票数量多少、如何才是符合“有定期投票习惯”则还不为人知。</p>
         </section>
         <section id='section-outline'>
           <h3>Outline</h3>
@@ -84,33 +92,47 @@
               <ul>
                 <li class="fragment">标题，年份</li>
                 <li class="fragment">类型，长度</li>
-                <li class="fragment">导演，演员</li>
+                <li class="fragment">国家，内容评级</li>
                 <li class="fragment">评分，评分数</li>
               </ul>
             </li>
           </ul>
         </section>
-        <section>
           <section id="section-genre-year" data-state="genre-year">
             <h3>Genre - Year</h3>
+            <small class="comment">电影类型的变迁往往有时代的印记</small>
           </section>
           <section id="section-contrating-year" data-state="contrating-year">
-            <h3>Content Rating - Year</h3>
+            <h3>Content Rating<a href="#/section-reference">[2]</a> - Year</h3>
+            <small class="comment">R级片常年占据半壁江山</small>
           </section>
           <section id="section-country-year" data-state="country-year">
             <h3>Country - Year</h3>
+            <small class="comment">美帝电影独领风骚一百年</small>
           </section>
-        </section>
-        <section>
 	  <section id="section-rating-year" data-state="rating-year">
 	    <h3>Rating - Year</h3>
+            <small class="comment">电影行业的水准正在逐年下滑</small>
 	  </section>
           <section id="section-rating-duration" data-state="rating-duration">
             <h3>Rating - Duration</h3>
+            <small class="comment">长片不一定是好片，但是长片是烂片的几率更低</small>
           </section>
           <section id="section-rating-budget" data-state="rating-budget">
-            <h3>Rating - Budget</h3>
+            <h3>Rating - Budget<sup style="font-size:16px">*</sup></h3>
+            <small style="font-size:16px;float:left">* 考虑到通胀因素，已换算成2013年的美元<a href="#/section-reference">[3]</a></small>
+            <small class="comment">电影质量和预算看来没有明显的关系</small>
           </section>
+        <section id="section-thank">
+          <h1>Thank you</h1>
+        </section>
+        <section id="section-reference">
+          <h3>References</h3>
+          <p><a href="#/section-imdb">1</a>. <a href="http://www.imdb.com/">IMDb - Movies, TV and Celebrities</a></p>
+          <p><a href="#/section-contrating-year">2</a>. <a href="http://en.wikipedia.org/wiki/MPAA_film_rating_system">MPAA film ratings</a>
+          <p><a href="#/section-rating-budget">3</a>. <a href="http://oregonstate.edu/cla/polisci/sites/default/files/faculty-research/sahr/inflation-conversion/excel/cv2013rs.xls">Conversion Factors in 2013 Dollars, using CPI-U-RS for 1947 to 2013</a></p>
+        </section>
+          
         </section>
       </div>
     </div>
@@ -122,6 +144,7 @@
     
     <script>
      $.getJSON('movie.json', function(data) {
+       $('#loadingText').remove();
        var colors = ["#7D74FE","#7DFF26","#F84F1B","#28D8D5","#FB95B6","#9D9931","#F12ABF","#27EA88","#549AD5","#FEA526","#7B8D8B","#BB755F","#432E16",
                      "#D75CFB","#44E337","#51EBE3","#ED3D24","#4069AE","#E1CC72","#E33E88","#D8A3B3","#428B50","#66F3A3","#E28A2A","#B2594D","#609297","#E8F03F","#3D2241",
                      "#954EB3","#6A771C","#58AE2E","#75C5E9","#BBEB85","#A7DAB9","#6578E6","#932C5F","#865A26","#CC78B9","#2E5A52","#8C9D79","#9F6270","#6D3377","#551927","#DE8D5A",
@@ -406,7 +429,7 @@
        Reveal.addEventListener('slidechanged', function(event) {
          console.log('#' + event.previousSlide.id + ' svg');
          $('#' + event.previousSlide.id + ' svg').remove();
-         $('#' + event.previousSlide.id + ' ul.legend').remove();
+         $('#' + event.previousSlide.id + ' .legend').remove();
        })
 
        Reveal.addEventListener('genre-year', function() {
@@ -415,6 +438,21 @@
 
        Reveal.addEventListener('contrating-year', function() {
          density_quantile(get('year'), function(d) {if (d.contrating !== null) return [d.contrating]; else return []}, x_axis_year_recent, '#section-contrating-year');
+         $('#section-contrating-year > ul.legend > li').map(function() {
+           if ($(this).text() === "G")
+             s = "G – 一般观众";
+           else if ($(this).text() === "PG")
+           s = "PG – 建议家长指导";
+           else if ($(this).text() === "PG-13")
+           s = "PG-13 – 家长需特别注意";
+           else if ($(this).text() === "R")
+           s = "R – 限制级";
+           else if ($(this).text() === "NC-17")
+           s = "NC-17 – 17岁或以下不得观赏";
+           else
+             s = "";
+           $(this).attr('title', s);
+           });
        }, false);
 
        Reveal.addEventListener('country-year', function() {
@@ -451,15 +489,22 @@
          var circle = svg.append('g')
                          .attr('transform', 'translate(' +
                                margin.left + ',' + margin.top + ')')
-                         .selectAll('circle')
+                         .selectAll('a')
                          .data(data);
          circle.enter()
+               .append('a')
+               .attr('xlink:href', function(d) {return get('url')(d);})
+               .attr('xlink:show', 'new')
                .append('circle')
                .filter(function(d) {return (x(d) >= x_min && x(d) <= x_max && y(d) >= y_min && y(d) <= y_max);})
                .attr('cx', function(d) {return x_scale(x(d))})
                .attr('cy', function(d) {return y_scale(y(d))})
                .attr('r', function(d) {return r_scale(r(d))})
-               .attr('fill-opacity', '0.5');
+               .attr('fill-opacity', '0.5')
+               .attr('title', function(d) {return get('title')(d) + ' (' +get('year')(d) + ')';})
+               .on('mouseover', function() {this.setAttribute('fill', '#ff0000');})
+               .on('mouseout', function() {this.setAttribute('fill', '#000000');});
+
        }
 
        Reveal.addEventListener('rating-year', function() {
