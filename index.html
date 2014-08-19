@@ -501,7 +501,8 @@
                .attr('cy', function(d) {return y_scale(y(d))})
                .attr('r', function(d) {return r_scale(r(d))})
                .attr('fill-opacity', '0.5')
-               .attr('title', function(d) {return get('title')(d) + ' (' +get('year')(d) + ')';})
+               .append('title')
+               .text(function(d) {return get('title')(d) + ' (' +get('year')(d) + ')';})
                .on('mouseover', function() {this.setAttribute('fill', '#ff0000');})
                .on('mouseout', function() {this.setAttribute('fill', '#000000');});
 
